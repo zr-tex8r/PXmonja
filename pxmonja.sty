@@ -1,0 +1,162 @@
+%
+% pxmonja.sty
+%
+
+%%%% package declaration
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesPackage{pxmonja}[2009/11/28]
+\RequirePackage{keyval}
+
+%%%% preparation
+\def\pxmj@pkgname{pxmonja}
+\def\pxmj@error{\PackageError\pxmj@pkgname}
+\def\pxmj@warn{\PackageWarningNoLine\pxmj@pkgname}
+\newif\ifpxmj@ok
+\newif\ifpxmj@uptex
+\def\pxmj@@star{*}
+
+%%%% option handling
+\let\pxmj@encode=4
+\DeclareOption{noascii}{\let\pxmj@encode=3\relax}
+\DeclareOption{ascii}{\let\pxmj@encode=4\relax}
+\DeclareOption{useot1}{\let\pxmj@encode=1\relax}
+\newif\ifpxmj@verbatim \pxmj@verbatimtrue
+\DeclareOption{verbatim}{\pxmj@verbatimtrue}
+\DeclareOption{noverbatim}{\pxmj@verbatimfalse}
+%% keyval
+\def\pxmj@scale{1}
+\define@key{pxmj}{scale}{\edef\pxmj@scale{#1}}
+\let\pxmj@font\relax
+\define@key{pxmj}{font}{\edef\pxmj@font{#1}}
+\DeclareOption*{%
+  \edef\pxmj@nxt{\noexpand\setkeys{pxmj}{\CurrentOption}}\pxmj@nxt}
+%%
+\ProcessOptions*
+
+%% detect native upTeX
+\ifx\ucs\@undefined\else \ifnum\ucs"3000="3000 \pxmj@uptextrue \fi\fi
+
+%%------ font settings
+
+%% invoke mapline special
+\ifx\pxmj@font\relax\else
+\AtBeginDvi{%
+\ifx\pxmj@font\pxmj@@star
+  \def\pxmj@unic{UniJIS-UCS2-HW-H}\def\pxmj@font{GothicBBB-Medium}%
+\else \def\pxmj@unic{unicode}\fi
+\ifpxmj@uptex
+\special{pdf:mapline mnjat-r-jy2 \pxmj@unic\space \pxmj@font}%
+\else
+\special{pdf:mapline mnjat-r-jy1 H \pxmj@font}%
+\fi
+\special{pdf:mapline r-mnjat-r-@PXcjk1a@ \pxmj@unic\space \pxmj@font}%
+}
+\fi
+
+%% \pxmj@are, \pxmj@afe
+\def\pxmj@afe{OT1}
+\if      1\pxmj@encode \def\pxmj@are{ot1}%
+\else\if 3\pxmj@encode \def\pxmj@are{l3j}%
+\else                  \def\pxmj@are{l4j}%
+\fi\fi
+
+
+%% \pxmj@jre, \pxmj@jfe, \pxmj@tfe
+\ifpxmj@uptex
+  \def\pxmj@jre{jy2}\def\pxmj@jfe{JY2}\def\pxmj@tfe{JT2}%
+\else
+  \def\pxmj@jre{jy1}\def\pxmj@jfe{JY1}\def\pxmj@tfe{JT1}%
+\fi
+
+%% \pxmj@decl@font@subst
+\@onlypreamble\pxmj@decl@font@subst
+\def\pxmj@decl@font@subst#1#2{%
+  \DeclareFontShape{#1}{#2}{m}{sc}{<->ssub*#2/m/n}{}%
+  \DeclareFontShape{#1}{#2}{m}{sl}{<->ssub*#2/m/n}{}%
+  \DeclareFontShape{#1}{#2}{m}{it}{<->ssub*#2/m/n}{}%
+  \DeclareFontShape{#1}{#2}{bx}{n}{<->ssub*#2/m/n}{}%
+  \DeclareFontShape{#1}{#2}{bx}{sc}{<->ssub*#2/bx/n}{}%
+  \DeclareFontShape{#1}{#2}{bx}{sl}{<->ssub*#2/bx/n}{}%
+  \DeclareFontShape{#1}{#2}{bx}{it}{<->ssub*#2/bx/n}{}%
+}
+
+%%%% define mnjat family
+\def\pxmj@name{mnjat}
+\DeclareKanjiFamily{\pxmj@jfe}{\pxmj@name}{}
+\DeclareFontShape{\pxmj@jfe}{\pxmj@name}{m}{n}%
+  {<->s*[\pxmj@scale]\pxmj@name-r-\pxmj@jre}{}
+\pxmj@decl@font@subst{\pxmj@jfe}{\pxmj@name}
+\DeclareKanjiFamily{\pxmj@tfe}{\pxmj@name}{}
+\DeclareFontShape{\pxmj@tfe}{\pxmj@name}{m}{n}%
+  {<->ssub*mc/m/n}{}
+\pxmj@decl@font@subst{\pxmj@tfe}{\pxmj@name}
+\DeclareFontFamily{\pxmj@afe}{a\pxmj@name}{}
+\DeclareFontShape{\pxmj@afe}{a\pxmj@name}{m}{n}%
+  {<->s*[\pxmj@scale]\pxmj@name-r-\pxmj@are}{}
+\pxmj@decl@font@subst{\pxmj@afe}{a\pxmj@name}
+
+%%------ verbatim hook
+\ifpxmj@verbatim    %<*verbatim>
+
+% If \verb has the default definition, we redefine it so that
+% the verb text is always enclosed in \hbox.
+\pxmj@okfalse
+  % This is the default \verb in LaTeX2e.
+\def\pxmj@cmd{\relax\ifmmode\hbox\else\leavevmode\null\fi
+  \bgroup \verb@eol@error \let\do\@makeother\dospecials
+    \verbatim@font \@noligs
+    \@ifstar \@sverb \@verb}
+\ifx\verb\pxmj@cmd \pxmj@oktrue \fi
+  % This is the default \verb in pLaTeX2e.
+\def\pxmj@cmd{\relax\ifmmode\hbox\else\leavevmode\fi
+  \bgroup \verb@eol@error \let\do\@makeother\dospecials
+    \verbatim@font \@noligs
+    \@ifstar \@sverb \@verb}
+\ifx\verb\pxmj@cmd \pxmj@oktrue \fi
+\ifpxmj@ok
+\def\verb{\leavevmode\hbox
+  \bgroup \verb@eol@error \let\do\@makeother\dospecials
+    \verbatim@font \@noligs
+    \@ifstar \@sverb \@verb}%
+\fi
+
+% NB. When bxjsverb is in effect, we have nothing to do.
+
+\AtBeginDocument{%
+% Here we append \domonja to the definition of \verbatim@font.
+% But if \verbatim@font currently has a simple definition '\ttfamily'
+% or '\normalfont\ttfamily' then we replace it by a single \domonja.
+\pxmj@okfalse
+\def\pxmj@cmd{\normalfont\ttfamily}%
+\ifx\verbatim@font\pxmj@cmd \pxmj@oktrue \fi
+\def\pxmj@cmd{\ttfamily}%
+\ifx\verbatim@font\pxmj@cmd \pxmj@oktrue \fi
+\ifpxmj@ok \let\verbatim@font\@empty \fi
+\g@addto@macro\verbatim@font{\domonja}%
+}
+
+\fi                 %</verbatim>
+
+%% family 'monja' for fancyvrb
+\def\FV@fontfamily@monja{%
+  \def\FV@FontFamily{\domonja}}
+
+%%------ user interface
+
+%% \domonja
+\newcommand*\domonja{%
+  \romanfamily{a\pxmj@name}\romanencoding{\pxmj@afe}
+  \kanjifamily{\pxmj@name}\selectfont\noautospacing\noautoxspacing}
+
+%% \escapemonja
+\newcommand*\escapemonja{\autospacing\autoxspacing}
+
+%% \monjabox
+\newcommand*\monjabox[1]{\leavevmode\hbox{\domonja#1}}
+
+%% \monja
+\newenvironment{monja}{\par\domonja}{\par}
+
+%%------ all done
+\endinput
+%% EOF
